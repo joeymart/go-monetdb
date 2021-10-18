@@ -14,6 +14,9 @@ type Conn struct {
 	mapi   *MapiConn
 }
 
+var FirstUseFunction = func(c *MapiConn) {
+}
+
 func newConn(c config) (*Conn, error) {
 	conn := &Conn{
 		config: c,
@@ -27,6 +30,7 @@ func newConn(c config) (*Conn, error) {
 	}
 
 	conn.mapi = m
+	FirstUseFunction(conn.mapi)
 	return conn, nil
 }
 

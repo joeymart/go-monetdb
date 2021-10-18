@@ -5,7 +5,6 @@
 package monetdb
 
 import (
-	"bytes"
 	"database/sql/driver"
 	"fmt"
 	"strconv"
@@ -83,6 +82,9 @@ func (s *Stmt) Query(args []driver.Value) (driver.Rows, error) {
 	}
 
 	err = s.storeResult(r)
+	if err != nil {
+		rows.err = err
+	}
 	rows.queryId = s.queryId
 	rows.lastRowId = s.lastRowId
 	rows.rowCount = s.rowCount
@@ -94,29 +96,7 @@ func (s *Stmt) Query(args []driver.Value) (driver.Rows, error) {
 }
 
 func (s *Stmt) exec(args []driver.Value) (string, error) {
-	if s.execId == -1 {
-		err := s.prepareQuery()
-		if err != nil {
-			return "", err
-		}
-	}
-
-	var b bytes.Buffer
-	b.WriteString(fmt.Sprintf("EXEC %d (", s.execId))
-
-	for i, v := range args {
-		str, err := convertToMonet(v)
-		if err != nil {
-			return "", nil
-		}
-		if i > 0 {
-			b.WriteString(", ")
-		}
-		b.WriteString(str)
-	}
-
-	b.WriteString(")")
-	return s.conn.execute(b.String())
+	return s.conn.execute(s.query)
 }
 
 func (s *Stmt) prepareQuery() error {
@@ -230,12 +210,10 @@ func (s *Stmt) storeResult(r string) error {
 			s.offset = 0
 			s.lastRowId = 0
 
-		} else if strings.HasPrefix(line, mapi_MSG_PROMPT) {
-			return nil
-
 		} else if strings.HasPrefix(line, mapi_MSG_ERROR) {
 			return fmt.Errorf("Database error: %s", line[1:])
-
+		} else if strings.HasPrefix(line, mapi_MSG_PROMPT) {
+			return nil
 		}
 	}
 

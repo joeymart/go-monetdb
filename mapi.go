@@ -112,7 +112,7 @@ func (c *MapiConn) Cmd(operation string) (string, error) {
 
 	resp := string(r)
 	if len(resp) == 0 {
-		return "", nil
+		return "", fmt.Errorf("Empty block response")
 
 	} else if strings.HasPrefix(resp, mapi_MSG_OK) {
 		return strings.TrimSpace(resp[3:]), nil
@@ -207,7 +207,10 @@ func (c *MapiConn) tryLogin(iteration int) error {
 		if r[1] == "merovingian" {
 			// restart auth
 			if iteration <= 10 {
-				c.tryLogin(iteration + 1)
+				err = c.tryLogin(iteration + 1)
+				if err != nil {
+					return err
+				}
 			} else {
 				return fmt.Errorf("Maximal number of redirects reached (10)")
 			}
@@ -322,6 +325,9 @@ func (c *MapiConn) getBytes(count int) ([]byte, error) {
 		}
 		copy(r[read:], b[:n])
 		read += n
+		// shrink buffer size to the len of remaining data
+		// in case it reads more than what it needs in next read but doesn't process the extra data
+		b = b[:count-read]
 	}
 
 	return r, nil

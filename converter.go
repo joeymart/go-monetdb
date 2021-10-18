@@ -32,6 +32,7 @@ const (
 	mdb_TIME      = "time"      // (T) time of day
 	mdb_TIMESTAMP = "timestamp" // (T) date concatenated with unique time
 	mdb_INTERVAL  = "interval"  // (Q) a temporal interval
+	mdb_UUID      = "uuid"
 
 	mdb_MONTH_INTERVAL = "month_interval"
 	mdb_SEC_INTERVAL   = "sec_interval"
@@ -65,6 +66,10 @@ var timeFormats = []string{
 
 type toGoConverter func(string) (driver.Value, error)
 type toMonetConverter func(driver.Value) (string, error)
+
+func stripNoQuote(v string) (driver.Value, error) {
+	return unquote(strings.TrimSpace(v[0 : len(v)]))
+}
 
 func strip(v string) (driver.Value, error) {
 	return unquote(strings.TrimSpace(v[1 : len(v)-1]))
@@ -225,6 +230,7 @@ var toGoMappers = map[string]toGoConverter{
 	mdb_MEDIUMINT:      toInt32,
 	mdb_LONGINT:        toInt64,
 	mdb_FLOAT:          toFloat,
+	mdb_UUID:           stripNoQuote,
 }
 
 func toString(v driver.Value) (string, error) {
